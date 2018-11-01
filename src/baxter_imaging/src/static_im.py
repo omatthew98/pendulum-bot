@@ -1,7 +1,7 @@
 import numpy as np
 import cv2
 
-img = cv2.imread("tennis.png", cv2.IMREAD_COLOR)
+img = cv2.imread("../assets/imgs/tennis.png", cv2.IMREAD_COLOR)
 hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
 
 # Thresholds for extracting the tennis ball
