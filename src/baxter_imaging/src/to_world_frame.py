@@ -87,11 +87,20 @@ class WorldFrameTransformer:
     #     # transformation = self.compute_transform(self, None, q_provided = rot, trans_provided = trans)
     #     # ballLoc = np.dot(transformation, ballLoc) # p_B
     #     self.pub.publish(BallLoc(ballLoc[0], ballLoc[1], ballLoc[2], bl.t))
-    
+
+
+
 def main():
+    calibration = True
     rospy.init_node('world_frame_transformer')
+    while calibration:
+        wft_calib = WorldFrameTransformer("/kinect/ball/location", "/world/ball/calib", "/base")
+        response = raw_input("Press <ENTER> to keep calibrating, type 'X' to stop.")
+        if response == 'X':
+            calibration = False
     wft = WorldFrameTransformer("/kinect/ball/location", "/world/ball/location", "/base")
     rospy.spin()
 
 if __name__ == "__main__":
+    calibration = True
     main()
