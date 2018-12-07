@@ -93,11 +93,11 @@ class WorldFrameTransformer:
 def main():
     calibration = True
     rospy.init_node('world_frame_transformer')
-    while calibration:
-        wft_calib = WorldFrameTransformer("/kinect/ball/location", "/world/ball/calib", "/base")
-        response = raw_input("Press <ENTER> to keep calibrating, type 'X' to stop.")
-        if response == 'X':
-            calibration = False
+    # while calibration:
+    #     wft_calib = WorldFrameTransformer("/kinect/ball/location", "/world/ball/calib", "/base")
+    #     response = raw_input("Press <ENTER> to keep calibrating, type 'X' to stop.")
+    #     if response == 'X':
+    #         calibration = False
     wft = WorldFrameTransformer("/kinect/ball/location", "/world/ball/location", "/base")
     rospy.spin()
 

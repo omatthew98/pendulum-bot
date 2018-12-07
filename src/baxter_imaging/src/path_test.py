@@ -57,17 +57,12 @@ class Actuator(object):
                 goal = PoseStamped()
                 goal.header.frame_id = "base"
 
-                goal.pose.position.x = loc.point.x
-                goal.pose.position.y = loc.point.y
-                goal.pose.position.z = loc.point.z
+                goal.pose.position.x = 0.427 #loc.point.x
+                goal.pose.position.y = -0.445 #loc.point.y
+                goal.pose.position.z = 0.270 #loc.point.z
 
-                q = [.291, .639, .643, .305]
-                def normalize(v):
-                    norm = np.linalg.norm(v)
-                    if norm == 0:
-                        return v
-                    return v / norm
-
+                q = [0.743, 0.294, 0.560, -0.220]
+                
                 q = normalize(q)
                 goal.pose.orientation.x = q[0] # -0.006
                 goal.pose.orientation.y = q[1] # -0.042
@@ -86,6 +81,12 @@ class Actuator(object):
                 print e
             else:
                 break
+
+def normalize(v):
+                    norm = np.linalg.norm(v)
+                    if norm == 0:
+                        return v
+                    return v / norm
 
 
 def main():

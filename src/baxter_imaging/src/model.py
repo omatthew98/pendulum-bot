@@ -26,7 +26,7 @@ class Model:
         self.pub = rospy.Publisher("kinect/ball/goal", PointStamped)
         self.rate = rospy.Rate(10)       
         self.queue = collections.deque(maxlen = 10)
-
+        self.r = 1.2
         self.group = moveit_commander.MoveGroupCommander("right_arm")
         self.pose = self.group.get_current_pose()
         self.gripper = robot_gripper.Gripper('right')

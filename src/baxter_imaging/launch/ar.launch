@@ -19,11 +19,13 @@
     <!-- <node name="ar_track_alvar_baxter" pkg="ar_track_alvar" type="individualMarkersNoKinect" respawn="false" output="screen" args="$(arg marker_size) $(arg max_new_marker_error) $(arg max_track_error) $(arg cam_image_topic_baxter) $(arg cam_info_topic_baxter) $(arg output_frame_baxter)" /> -->
     <param name="robot_description" textfile="$(find baxter_description)/urdf/baxter.urdf"/>
     <!-- <param name="robot_description" textfile="$(find baxter_description)/urdf/baxter.urdf"/> -->
-    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/>\
+    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/>
 
     <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0 0.1016 -.1651 0.1745 0 0 /reference/head_camera kinect_frame 100" />
 
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
+    <node name="kinect_util" pkg="baxter_imaging" type="kinect_util.py"/>
+    <node name="to_world_frame" pkg="baxter_imaging" type="to_world_frame.py"/>
     <!-- <node name="rviz" pkg="rviz" type="rviz" args="$(find baxter_imaging)/launch/baxter.rviz" required="true"/> -->
     <!-- <include file="$(find baxter_moveit_config)/launch/planning_context.launch">
         <arg name="load_robot_description" value="true"/>
