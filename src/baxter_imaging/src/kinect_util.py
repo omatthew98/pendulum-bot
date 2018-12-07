@@ -7,8 +7,9 @@ import imutils
 from sensor_msgs.msg import Image, PointCloud2
 from sensor_msgs.point_cloud2 import *
 from sensor_msgs.point_cloud2 import _get_struct_fmt
+from geometry_msgs.msg import PointStamped
 
-from baxter_imaging.msg import BallLoc
+# from baxter_imaging.msg import BallLoc
 
 class KinectImage:
     def __init__(self, img_topic, depth_topic, color = "bgr8", CALIBRATE_COUNT=150.0):
@@ -16,13 +17,12 @@ class KinectImage:
         self.depth_topic = depth_topic
         self.subscriber1 = rospy.Subscriber(img_topic, Image, self.imgCallback)
         self.subscriber2 = rospy.Subscriber(depth_topic, PointCloud2, self.depthCallback)
-        self.lastPC = None
         self.bridge = cv_bridge.CvBridge()
         self.calibrate = 0
         self.CALIBRATE_COUNT = CALIBRATE_COUNT
         self.color = color
         self.background = cv.createBackgroundSubtractorMOG2()
-        self.pub = rospy.Publisher("kinect/ball/location", BallLoc)
+        self.pub = rospy.Publisher("kinect/ball/location", PointStamped)
         self.rate = rospy.Rate(10)
 
     def imgCallback(self, data):
@@ -89,10 +89,12 @@ class KinectImage:
                 # then update the list of tracked points
                 cv.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
                 cv.circle(frame, center, 5, (0, 0, 255), -1)
-                x_coord, y_coord, depth = getDepth(x, y, self.lastPC)
-                bl = BallLoc(x_coord, y_coord, depth, rospy.Time.now())
-                self.pub.publish(bl)
-                print(bl)
+                p = PointStamped()
+                p.point.x, p.point.y, p.point.z = getDepth(x, y, self.lastPC)
+                p.header.frame_id = "kinect_frame"
+                
+                self.pub.publish(p)
+                print(p)
 
         cv.imshow("Frame", frame)
         key = cv.waitKey(1) & 0xFF
