@@ -21,9 +21,11 @@
     <!-- <param name="robot_description" textfile="$(find baxter_description)/urdf/baxter.urdf"/> -->
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/>\
 
-    <!-- <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" /> -->
+    <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0 0.1016 -.1651 0.1745 0 0 /reference/head_camera kinect_frame 100" />
+
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
     <!-- <node name="rviz" pkg="rviz" type="rviz" args="$(find baxter_imaging)/launch/baxter.rviz" required="true"/> -->
-    <include file="$(find baxter_moveit_config)/launch/planning_context.launch">
+    <!-- <include file="$(find baxter_moveit_config)/launch/planning_context.launch">
         <arg name="load_robot_description" value="true"/>
     </include>
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen"/>
@@ -32,5 +34,5 @@
     </include>
     <include file="$(find baxter_moveit_config)/launch/moveit_rviz.launch">
         <arg name="config" value="true"/>
-    </include>
+    </include> -->
 </launch>

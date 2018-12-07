@@ -5,12 +5,13 @@ import rospy
 
 from baxter_imaging.msg import BallLoc
 from scipy.integrate import solve_ivp
+from geometry_msgs.msg import PointStamped
 
 class Model:
 
     def __init__(self, topic):
         self.topic = topic
-        self.subscriber = rospy.Subscriber(topic, BallLoc, self.callback)
+        self.subscriber = rospy.Subscriber(topic, PointStamped, self.callback)
         self.pub = rospy.Publisher("kinect/ball/goal", BallLoc)
         self.rate = rospy.Rate(10)
         self.r = 5
@@ -31,7 +32,7 @@ class Model:
         return np.dot(A, y) + b
 
     def callback(self, data):
-        # print("Model got location: ", data)
+        print("Model got location: ", data)
         x, y, z = data.x, data.y, data.d
         theta = np.arccos(z / self.r)
 
@@ -68,7 +69,7 @@ class Model:
 
 def main():
     rospy.init_node('model')
-    model = Model("kinect/ball/location")
+    model = Model("world/ball/location")
     rospy.spin()
 
 if __name__=='__main__':
