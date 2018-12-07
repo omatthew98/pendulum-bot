@@ -62,7 +62,7 @@ class Model:
         keys = points.keys()
         
         goal_point = points[keys[0]]
-        goal_loc = BallLoc(goal_point[0], goal_point[1], 1, rospy.Time.now())
+        goal_loc = BallLoc(goal_point[0], goal_point[1], 1, rospy.Time())
         # print(goal_loc)
         self.pub.publish(goal_loc)
 
