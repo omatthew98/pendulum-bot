@@ -19,7 +19,7 @@ ready = False
 
 class Actuator(object):
 
-    def __init__(self, sub_topic):
+    def __init__(self, sub_topic, pub_topic):
 
         self.planner = None
         self.limb = None

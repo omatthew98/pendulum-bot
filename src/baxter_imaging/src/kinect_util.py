@@ -32,8 +32,9 @@ class KinectImage:
 
         self.ball_frame = ball_frame
         try:
-            cam_info = rospy.wait_for_message(camera_info_topic, CameraInfo, timeout=10)
+            cam_info = rospy.wait_for_message(camera_info_topic, CameraInfo)
         except:
+            print("ERR")
             rospy.signal_shutdown("Error trying to get camera information")
         self.maxX, self.maxY = cam_info.width, cam_info.height
         self.minX, self.minY = 0, 0
@@ -116,7 +117,8 @@ class KinectImage:
                 cv.circle(frame, (int(x), int(y)), int(radius), (0, 255, 255), 2)
                 cv.circle(frame, center, 5, (0, 0, 255), -1)
                 p = PointStamped()
-                p.point.z, p.point.y, p.point.x = getDepth(x, y, self.lastPC)
+                p.point.y, p.point.z, p.point.x = getDepth(x, y, self.lastPC)
+                p.point.y, p.point.z = p.point.y, -p.point.z
                 # p.point.x, p.point.y, p.point.z = x * 0.001, y * 0.001, getDepth(x, y, self.lastPC)[2]
                 p.header.frame_id = self.ball_frame
                 
@@ -128,24 +130,32 @@ class KinectImage:
     def depthCallback(self, pc):
         self.lastPC = pc
         
-def getDepth(x, y, lPC, numSamples=100, mu=0, sigma=7):
-    ptsX, ptsY, ptsD = np.array([]), np.array([]), np.array([])
+def getDepth(x, y, lPC, numSamples=500, mu=0, sigma=3):
+    # x -= 10
+    # ptsX, ptsY, ptsD = np.array([]), np.array([]), np.array([])
+    # for _ in range(numSamples):
+    #     try:
+    #         dx, dy = np.random.normal(mu, sigma, 2)
+    #         # pts_gen = read_points(lPC, uvs=[(int(np.round(x + dx)), int(np.round(y + dy)))])
+    #         # pt = next(pts_gen)
+    #         pt = read_point(int(np.round(x + dx)), int(np.round(y + dy)), lPC)
+    #         if not np.isnan(pt[0]):
+    #             ptsX = np.append(ptsX, pt[0])
+    #         if not np.isnan(pt[1]):
+    #             ptsY = np.append(ptsY, pt[1])
+    #         if not np.isnan(pt[2]):
+    #             ptsD = np.append(ptsD, pt[2])      
+    #     except Exception as e:
+    #         rospy.logerr("failed: %s", e)
+    #         pass
+    # return np.median(ptsX), np.median(ptsY), np.median(ptsD)
+    pts = []
     for _ in range(numSamples):
-        try:
-            dx, dy = np.random.normal(mu, sigma, 2)
-            # pts_gen = read_points(lPC, uvs=[(int(np.round(x + dx)), int(np.round(y + dy)))])
-            # pt = next(pts_gen)
-            pt = read_point(int(np.round(x + dx)), int(np.round(y + dy)), lPC)
-            if not np.isnan(pt[0]):
-                ptsX = np.append(ptsX, pt[0])
-            if not np.isnan(pt[1]):
-                ptsY = np.append(ptsY, pt[1])
-            if not np.isnan(pt[2]):
-                ptsD = np.append(ptsD, pt[2])      
-        except Exception as e:
-            rospy.logerr("failed: %s", e)
-            pass
-    return np.median(ptsX), np.median(ptsY), np.median(ptsD)
+        dx, dy = np.random.normal(mu, sigma, 2)
+        pt = read_point(int(np.round(x + dx)), int(np.round(y + dy)), lPC)
+        if not np.isnan(pt[0]) and not np.isnan(pt[1]) and not np.isnan(pt[2]):
+            pts.append(pt)
+    return min(pts, key=lambda x: x[2])
 
 def read_point(x, y, cloud, field_names=None, skip_nans=False, uvs=[]):
     assert isinstance(cloud, roslib.message.Message) and cloud._type == 'sensor_msgs/PointCloud2', 'cloud is not a sensor_msgs.msg.PointCloud2'

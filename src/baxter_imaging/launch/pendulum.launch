@@ -4,9 +4,6 @@
     <arg name="display_to_kinect_x" default="0.03"/>
     <arg name="display_to_kinect_y" default="0.175"/>
     <arg name="display_to_kinect_z" default="-0.05"/>
-    <!-- <arg name="display_to_kinect_yaw" default="0"/>
-    <arg name="display_to_kinect_pitch" default="-1.57"/>
-    <arg name="display_to_kinect_roll" default="-1.57"/> -->
     <arg name="display_to_kinect_qx" default="-.3797"/>
     <arg name="display_to_kinect_qy" default="-.3797"/>
     <arg name="display_to_kinect_qz" default="-0.5964"/>
@@ -57,4 +54,10 @@
         <param name="location_topic/kinect" value="$(arg ball_location_topic_kinect)"/>
         <param name="location_topic/base" value="$(arg ball_location_topic_base)"/>
     </node>
+
+    <node name="trajectory_server" pkg="baxter_interface" type="joint_trajectory_action_server.py" required="true"/>
+
+    <include file="$(find baxter_moveit_config)/launch/demo_baxter.launch">
+        <arg name="right_electric_gripper" value="true"/>
+    </include>
 </launch>
