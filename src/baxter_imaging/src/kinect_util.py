@@ -5,58 +5,37 @@ import cv_bridge
 import cv2 as cv
 import imutils
 from sensor_msgs.msg import Image, PointCloud2
-from sensor_msgs.point_cloud2 import *
-from sensor_msgs.point_cloud2 import _get_struct_fmt
+from sensor_msgs.point_cloud2 import read_points
 from geometry_msgs.msg import PointStamped
 
-# from baxter_imaging.msg import BallLoc
+RGB_TOPIC_PARAM="~camera_topic/rgb"
+DEPTH_TOPIC_PARAM="~camera_topic/depth"
+LOCATION_TOPIC_PARAM="~location_topic/kinect"
+BALL_FRAME_PARAM="~frame/ball"
+
 
 class KinectImage:
-    def __init__(self, img_topic, depth_topic, color = "bgr8", CALIBRATE_COUNT=150.0):
-        self.img_topic = img_topic
-        self.depth_topic = depth_topic
-        self.subscriber1 = rospy.Subscriber(img_topic, Image, self.imgCallback)
-        self.subscriber2 = rospy.Subscriber(depth_topic, PointCloud2, self.depthCallback)
+    def __init__(self, img_topic, depth_topic, pub_topic, ball_frame, CALIBRATE_COUNT=150.0):
+        self.lastPC = None
+
         self.bridge = cv_bridge.CvBridge()
+        self.background = cv.createBackgroundSubtractorMOG2()
+
         self.calibrate = 0
         self.CALIBRATE_COUNT = CALIBRATE_COUNT
-        self.color = color
-        self.background = cv.createBackgroundSubtractorMOG2()
-        self.pub = rospy.Publisher("kinect/ball/location", PointStamped)
+
         self.rate = rospy.Rate(10)
+
+        self.ball_frame = ball_frame
+
+        self.subscriber1 = rospy.Subscriber(img_topic, Image, self.imgCallback)
+        self.subscriber2 = rospy.Subscriber(depth_topic, PointCloud2, self.depthCallback)
+        self.pub = rospy.Publisher(pub_topic, PointStamped)
 
     def imgCallback(self, data):
         if self.lastPC is None:
             return
         cvImage = self.bridge.imgmsg_to_cv2(data, "bgr8")
-        # cv.ocl.setUseOpenCL(False)
-        # # Calibrates the background for background subtraction
-        # if self.calibrate < self.CALIBRATE_COUNT:
-        #     if self.calibrate % 10 == 0:
-        #         print("{}% Complete".format(self.calibrate * 100.0 / float(self.CALIBRATE_COUNT)))
-        #     self.background.apply(cvImage)
-        #     self.calibrate += 1
-        #     return
-        # # Calculate circles found
-        # fgmask = self.background.apply(cvImage, learningRate = 0)
-        # blurred = cv.medianBlur(fgmask, 5)
-        # circles = cv.HoughCircles(blurred, cv.HOUGH_GRADIENT, 1, 200, param1 = 50, param2 = 25, minRadius = 0, maxRadius = 0)
-        # if circles is not None:
-        #     for i, circle in enumerate(circles[0:,]):
-        #         if i > 4:
-        #             break
-        #         center = (circle[0][0], circle[0][1])
-        #         radius = circle[0][2]
-        #         depth = getDepth(center[0], center[1], self.lastPC)
-        #         cv.circle(blurred, center, radius, (0, 255, 0), 2)
-        #         cv.circle(blurred, center, 2, (0, 0, 255), 3)
-        #         bl = BallLoc(center[0], center[1], depth, rospy.Time.now())
-        #         self.pub.publish(bl)
-        #         print(bl)
-        # cv.imshow('circles', blurred)
-        # cv.waitKey(1)
-
-        # self.rate.sleep()
         greenLower = (29, 86, 6)
         greenUpper = (64, 255, 255)
 
@@ -91,7 +70,8 @@ class KinectImage:
                 cv.circle(frame, center, 5, (0, 0, 255), -1)
                 p = PointStamped()
                 p.point.x, p.point.y, p.point.z = getDepth(x, y, self.lastPC)
-                p.header.frame_id = "kinect_frame"
+                # p.point.x, p.point.y, p.point.z = x * 0.001, y * 0.001, getDepth(x, y, self.lastPC)[2]
+                p.header.frame_id = self.ball_frame
                 
                 self.pub.publish(p)
                 print(p)
@@ -101,28 +81,14 @@ class KinectImage:
 
     def depthCallback(self, pc):
         self.lastPC = pc
-
-# def getDepth(x, y, lPC, numSamples=100, mu=0, sigma=7):
-#     pts = np.array([])
-#     for _ in range(numSamples):
-#         try:
-#             dx, dy = np.random.normal(mu, sigma, 2)
-#             pt = read_point(int(np.round(x + dx)), int(np.round(y + dy)), lPC)[2]
-#             if not np.isnan(pt):
-#                 pts = np.append(pts, pt)      
-#         except Exception as e:
-#             print(_, "failed:", e)
-#             pass
-#     return np.median(pts)
-
-
+        
 def getDepth(x, y, lPC, numSamples=100, mu=0, sigma=7):
     ptsX, ptsY, ptsD = np.array([]), np.array([]), np.array([])
     for _ in range(numSamples):
         try:
             dx, dy = np.random.normal(mu, sigma, 2)
-            pt = read_point(int(np.round(x + dx)), int(np.round(y + dy)), lPC)
-
+            pt = next(read_points(lPC, uvs=[(int(np.round(x + dx)), int(np.round(y + dy)))]))
+            rospy.logdebug(pt)
             if not np.isnan(pt[0]):
                 ptsX = np.append(ptsX, pt[0])
             if not np.isnan(pt[1]):
@@ -130,17 +96,17 @@ def getDepth(x, y, lPC, numSamples=100, mu=0, sigma=7):
             if not np.isnan(pt[2]):
                 ptsD = np.append(ptsD, pt[2])      
         except Exception as e:
-            print(_, "failed:", e)
+            rospy.logerr("failed: %s", e)
             pass
     return np.mean(ptsX), np.mean(ptsY), np.median(ptsD)
 
-def read_point(x, y, cloud, field_names=None, skip_nans=False, uvs=[]):
-    assert isinstance(cloud, roslib.message.Message) and cloud._type == 'sensor_msgs/PointCloud2', 'cloud is not a sensor_msgs.msg.PointCloud2'
-    fmt = _get_struct_fmt(cloud.is_bigendian, cloud.fields, field_names)
-    width, height, point_step, row_step, data, isnan = cloud.width, cloud.height, cloud.point_step, cloud.row_step, cloud.data, math.isnan
-    unpack_from = struct.Struct(fmt).unpack_from
-    offset = row_step * y + point_step * x
-    return unpack_from(data, offset)
+# def read_point(x, y, cloud, field_names=None, skip_nans=False, uvs=[]):
+#     assert isinstance(cloud, roslib.message.Message) and cloud._type == 'sensor_msgs/PointCloud2', 'cloud is not a sensor_msgs.msg.PointCloud2'
+#     fmt = _get_struct_fmt(cloud.is_bigendian, cloud.fields, field_names)
+#     width, height, point_step, row_step, data, isnan = cloud.width, cloud.height, cloud.point_step, cloud.row_step, cloud.data, math.isnan
+#     unpack_from = struct.Struct(fmt).unpack_from
+#     offset = row_step * y + point_step * x
+#     return unpack_from(data, offset)
 
 # Code from: https://github.com/jrosebr1/imutils/blob/5aae9887df3dcada5f8d8fa6af0df2122ad7aaca/imutils/convenience.py
 # This is code from the imutils package that for whatever reason does not appear to 
@@ -166,9 +132,27 @@ def grab_contours(cnts):
     return cnts
 
 def main():
-    rospy.init_node('kinect_image')
-    rgb = KinectImage('/camera/rgb/image_raw', '/camera/depth/points')
+    rospy.init_node('kinect_image', log_level=rospy.DEBUG)
+    if not rospy.has_param(RGB_TOPIC_PARAM):
+        rospy.logerr("Couldn't find parameter %s", RGB_TOPIC_PARAM)
+        exit(1)
+    if not rospy.has_param(DEPTH_TOPIC_PARAM):
+        rospy.logerr("Couldn't find parameter %s", DEPTH_TOPIC_PARAM)
+        exit(1)
+    if not rospy.has_param(LOCATION_TOPIC_PARAM):
+        rospy.logerr("Couldn't find parameter %s", LOCATION_TOPIC_PARAM)
+        exit(1)
+    if not rospy.has_param(BALL_FRAME_PARAM):
+        rospy.logerr("Couldn't find parameter %s", BALL_FRAME_PARAM)
+        exit(1)
+    rgb = KinectImage( 
+        rospy.get_param(RGB_TOPIC_PARAM), 
+        rospy.get_param(DEPTH_TOPIC_PARAM), 
+        rospy.get_param(LOCATION_TOPIC_PARAM),
+        rospy.get_param(BALL_FRAME_PARAM))
     rospy.spin()
+    rgb.subscriber1.unregister()
+    rgb.subscriber2.unregister()
 
 if __name__=='__main__':
     main()

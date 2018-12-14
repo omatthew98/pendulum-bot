@@ -1,40 +1,48 @@
 <launch>
     <include file="$(find freenect_launch)/launch/freenect.launch"/>
-    <arg name="marker_size" default="17.0" />
-    <arg name="max_new_marker_error" default="0.2" />
-    <arg name="max_track_error" default="0.1" />
-    <arg name="cam_image_topic_kinect" default="/camera/rgb/image_raw" />
-    <arg name="cam_info_topic_kinect" default="/camera/rgb/camera_info" />
-    <arg name="output_frame_kinect" default="/camera_link" />
-    <arg name="cam_image_topic_baxter" default="/cameras/left_hand_camera/image" />
-    <arg name="cam_info_topic_baxter" default="/cameras/left_hand_camera/camera_info" />
-    <arg name="output_frame_baxter" default="/reference/left_hand_camera" />
-    <arg name="max_frequency" default="10.0" />
-    <arg name="marker_resolution" default="5" />
-    <arg name="marker_margin" default="2" />
-    <!-- <arg name="kinect_to_head_camera_x" default="-17.14"/> -->
-    <!-- <arg name="kinect_to_head_camera_y" default="-17.14"/> -->
-    <!-- <arg name="kinect_to_head_camera_z" default="-17.14"/> -->
-    <!-- <node name="ar_track_alvar_kinect" pkg="ar_track_alvar" type="individualMarkersNoKinect" respawn="false" output="screen" args="$(arg marker_size) $(arg max_new_marker_error) $(arg max_track_error) $(arg cam_image_topic_kinect) $(arg cam_info_topic_kinect) $(arg output_frame_kinect)" /> -->
-    <!-- <node name="ar_track_alvar_baxter" pkg="ar_track_alvar" type="individualMarkersNoKinect" respawn="false" output="screen" args="$(arg marker_size) $(arg max_new_marker_error) $(arg max_track_error) $(arg cam_image_topic_baxter) $(arg cam_info_topic_baxter) $(arg output_frame_baxter)" /> -->
+
+    <arg name="display_to_kinect_x" default="0.03"/>
+    <arg name="display_to_kinect_y" default="0.12"/>
+    <arg name="display_to_kinect_z" default="-0.1451"/>
+    <arg name="display_to_kinect_yaw" default="0"/>
+    <arg name="display_to_kinect_pitch" default="-1.57"/>
+    <arg name="display_to_kinect_roll" default="-1.57"/>
+        <!-- <arg name="display_to_kinect_pitch" default="0"/> -->
+    <!-- <arg name="display_to_kinect_roll" default="0.17"/> -->
+    <arg name="display_frame" default="/head_camera"/>
+    <arg name="kinect_frame" default="/camera_link"/>
+    <arg name="base_frame" default="/reference/base"/>
+    <arg name="kinect_rgb_source" default="/camera/rgb/image_raw"/>
+    <arg name="kinect_depth_source" default="/camera/depth/points"/>
+    <arg name="ball_location_topic_kinect" default="/kinect/ball/location"/>
+    <arg name="ball_location_topic_base" default="/base/ball/location"/>
+
+    <node name="display_to_kinect_transformer"
+        pkg="tf" 
+        type="static_transform_publisher" 
+        args="$(arg display_to_kinect_x) $(arg display_to_kinect_y) $(arg display_to_kinect_z) $(arg display_to_kinect_yaw) $(arg display_to_kinect_pitch) $(arg display_to_kinect_roll) $(arg display_frame) $(arg kinect_frame) 100" 
+        required="true"
+    />
+    
     <param name="robot_description" textfile="$(find baxter_description)/urdf/baxter.urdf"/>
-    <!-- <param name="robot_description" textfile="$(find baxter_description)/urdf/baxter.urdf"/> -->
+    <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/>
 
-    <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0 0.1016 -.1651 0.1745 0 0 /reference/head_camera kinect_frame 100" />
+    <node name="kinect_util" 
+        pkg="baxter_imaging" 
+        type="kinect_util.py" 
+        required="true">
 
-    <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
-    <node name="kinect_util" pkg="baxter_imaging" type="kinect_util.py"/>
-    <node name="to_world_frame" pkg="baxter_imaging" type="to_world_frame.py"/>
-    <!-- <node name="rviz" pkg="rviz" type="rviz" args="$(find baxter_imaging)/launch/baxter.rviz" required="true"/> -->
-    <!-- <include file="$(find baxter_moveit_config)/launch/planning_context.launch">
-        <arg name="load_robot_description" value="true"/>
-    </include>
-    <node name="robot_state_publisher" pkg="robot_state_publisher" type="robot_state_publisher" respawn="true" output="screen"/>
-    <include file="$(find baxter_moveit_config)/launch/move_group.launch">
-        <arg name="allow_trajectory_execution" value="true"/>
-    </include>
-    <include file="$(find baxter_moveit_config)/launch/moveit_rviz.launch">
-        <arg name="config" value="true"/>
-    </include> -->
+        <param name="camera_topic/rgb" value="$(arg kinect_rgb_source)" />
+        <param name="camera_topic/depth" value="$(arg kinect_depth_source)" />
+        <param name="location_topic/kinect" value="$(arg ball_location_topic_kinect)" />
+        <param name="frame/ball" value="$(arg kinect_frame)" />
+
+    </node>
+
+    <node name="to_world_frame" pkg="baxter_imaging" type="to_world_frame.py" required="true">
+        <param name="frame/target" value="$(arg base_frame)" />
+        <param name="location_topic/kinect" value="$(arg ball_location_topic_kinect)"/>
+        <param name="location_topic/base" value="$(arg ball_location_topic_base)"/>
+    </node>
 </launch>
