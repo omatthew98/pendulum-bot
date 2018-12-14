@@ -18,16 +18,17 @@ class WorldFrameTransformer:
         self.pub = rospy.Publisher(pub_topic, PointStamped)
 
     def pointCB(self, point):
-        try:
-            t, r = self.listener.lookupTransform(self.target_frame, point.header.frame_id, rospy.Time())
-        except:
-            return
-        transformation = self.trans.fromTranslationRotation(t, r)
-        p = np.array([point.point.x, point.point.y, point.point.z, 1]).reshape(4,1)
-        ps = PointStamped()
-        ps.point.x, ps.point.y, ps.point.z, _ = transformation.dot(p) .reshape(4,)
-        ps.header.frame_id = self.target_frame
-        self.pub.publish(ps)
+        # try:
+        #     t, r = self.listener.lookupTransform(self.target_frame, point.header.frame_id, rospy.Time())
+        # except:
+        #     return
+        # transformation = self.trans.fromTranslationRotation(t, r)
+        # p = np.array([point.point.x, point.point.y, point.point.z, 1]).reshape(4,1)
+        # ps = PointStamped()
+        # ps.point.x, ps.point.y, ps.point.z, _ = transformation.dot(p) .reshape(4,)
+        # ps.header.frame_id = self.target_frame
+        # self.pub.publish(ps)
+        self.pub.publish(self.listener.transformPoint(self.target_frame, point))
 
 def main():
     rospy.init_node('world_frame_transformer')

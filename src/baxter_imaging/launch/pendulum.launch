@@ -2,28 +2,38 @@
     <include file="$(find freenect_launch)/launch/freenect.launch"/>
 
     <arg name="display_to_kinect_x" default="0.03"/>
-    <arg name="display_to_kinect_y" default="0.12"/>
-    <arg name="display_to_kinect_z" default="-0.1451"/>
-    <arg name="display_to_kinect_yaw" default="0"/>
+    <arg name="display_to_kinect_y" default="0.175"/>
+    <arg name="display_to_kinect_z" default="-0.05"/>
+    <!-- <arg name="display_to_kinect_yaw" default="0"/>
     <arg name="display_to_kinect_pitch" default="-1.57"/>
-    <arg name="display_to_kinect_roll" default="-1.57"/>
-        <!-- <arg name="display_to_kinect_pitch" default="0"/> -->
-    <!-- <arg name="display_to_kinect_roll" default="0.17"/> -->
+    <arg name="display_to_kinect_roll" default="-1.57"/> -->
+    <arg name="display_to_kinect_qx" default="-.3797"/>
+    <arg name="display_to_kinect_qy" default="-.3797"/>
+    <arg name="display_to_kinect_qz" default="-0.5964"/>
+    <arg name="display_to_kinect_qw" default="0.5964"/>
     <arg name="display_frame" default="/head_camera"/>
     <arg name="kinect_frame" default="/camera_link"/>
     <arg name="base_frame" default="/reference/base"/>
     <arg name="kinect_rgb_source" default="/camera/rgb/image_raw"/>
+    <arg name="kinect_rgb_info" default="/camera/rgb/camera_info"/>
     <arg name="kinect_depth_source" default="/camera/depth/points"/>
     <arg name="ball_location_topic_kinect" default="/kinect/ball/location"/>
     <arg name="ball_location_topic_base" default="/base/ball/location"/>
 
-    <node name="display_to_kinect_transformer"
+    <!-- <node name="display_to_kinect_transformer"
         pkg="tf" 
         type="static_transform_publisher" 
         args="$(arg display_to_kinect_x) $(arg display_to_kinect_y) $(arg display_to_kinect_z) $(arg display_to_kinect_yaw) $(arg display_to_kinect_pitch) $(arg display_to_kinect_roll) $(arg display_frame) $(arg kinect_frame) 100" 
         required="true"
-    />
+    /> -->
     
+    <node name="display_to_kinect_transformer"
+        pkg="tf" 
+        type="static_transform_publisher" 
+        args="$(arg display_to_kinect_x) $(arg display_to_kinect_y) $(arg display_to_kinect_z) $(arg display_to_kinect_qx) $(arg display_to_kinect_qy) $(arg display_to_kinect_qz) $(arg display_to_kinect_qw) $(arg display_frame) $(arg kinect_frame) 100" 
+        required="true"
+    />
+
     <param name="robot_description" textfile="$(find baxter_description)/urdf/baxter.urdf"/>
     <node name="robot_state_publisher" pkg="robot_state_publisher" type="state_publisher" />
     <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/>
@@ -31,10 +41,12 @@
     <node name="kinect_util" 
         pkg="baxter_imaging" 
         type="kinect_util.py" 
-        required="true">
+        required="true"
+        output="screen">
 
         <param name="camera_topic/rgb" value="$(arg kinect_rgb_source)" />
         <param name="camera_topic/depth" value="$(arg kinect_depth_source)" />
+        <param name="camera_topic/info" value="$(arg kinect_rgb_info)"/>
         <param name="location_topic/kinect" value="$(arg ball_location_topic_kinect)" />
         <param name="frame/ball" value="$(arg kinect_frame)" />
 

@@ -1,4 +1,0 @@
-<launch>
-    <param name="image_path" value="$(find baxter_imaging)/imgs/MarkerData_0_whiteborder.png"/>
-    <node pkg="baxter_imaging" type="activate_ar.py" name="baxter_ar_face" output="screen"/>
-</launch>
