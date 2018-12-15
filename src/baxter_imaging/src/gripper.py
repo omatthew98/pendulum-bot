@@ -13,6 +13,8 @@ from baxter_interface import gripper as robot_gripper
 
 from geometry_msgs.msg import PointStamped
 
+THRESHOLD = 0.7
+
 class Gripper:
 
 	def __init__(self, sub_topic1, sub_topic2):
@@ -20,12 +22,10 @@ class Gripper:
 		self.ready = False
 
 		self.rate = rospy.Rate(10)	   
-		self.queue = collections.deque(maxlen = 10)
+		# self.queue = collections.deque(maxlen = 10)
 		# Generalize this to both arms?
 		self.group = moveit_commander.MoveGroupCommander("right_arm")
-		link = self.group.get_end_effector_link()
-		self.pos = self.group.get_current_pose(end_effector_link=link)
-		print(self.pos)
+		self.listener = tf.TransformListener()
 		self.gripper = robot_gripper.Gripper('right')
 		self.gripper.set_velocity(100)
 		self.gripper.calibrate()
@@ -43,18 +43,21 @@ class Gripper:
 		if not self.ready:
 			return
 		x, y, z = ball_pos.point.x, ball_pos.point.y, ball_pos.point.z
-		x_end, y_end, z_end = self.pos.pose.position.x, self.pos.pose.position.y, self.pos.pose.position.z
+		trans, rot = self.listener.lookupTransform("/reference/base", "/reference/right_hand", rospy.Time())
+
+		x_end, y_end, z_end = trans
+		z_end -= 0.04
 		threshold = np.sqrt((x - x_end)**2 + (y - y_end)**2 + (z - z_end)**2)
 		print(threshold)
-		self.queue.append(threshold)
-		for t in self.queue:
-			if t > 1.3:
-				return
+		# self.queue.append(threshold)
+		# for t in self.queue:
+		if threshold > THRESHOLD:
+			return
 		print("Threshold reached")
 		self.gripper.close()
-		rospy.sleep(2)
+		rospy.sleep(1)
 		self.gripper.open()
-		self.queue.clear()
+		# self.queue.clear()
 		# rospy.sleep(2)
 
 def main():

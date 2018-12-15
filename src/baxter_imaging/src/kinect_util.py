@@ -17,7 +17,7 @@ BALL_FRAME_PARAM="~frame/ball"
 
 
 class KinectImage:
-    def __init__(self, img_topic, depth_topic, pub_topic, camera_info_topic, ball_frame, CALIBRATE_COUNT=150.0):
+    def __init__(self, img_topic, depth_topic, pub_topic, camera_info_topic, ball_frame, CALIBRATE_COUNT=150.0, robot_display_topic="/robot/xdisplay"):
         self.lastPC = None
 
         self.bridge = cv_bridge.CvBridge()
@@ -38,9 +38,13 @@ class KinectImage:
             rospy.signal_shutdown("Error trying to get camera information")
         self.maxX, self.maxY = cam_info.width, cam_info.height
         self.minX, self.minY = 0, 0
+        self.pub = rospy.Publisher(pub_topic, PointStamped)
+        if robot_display_topic:
+            self.robot_display_pub = rospy.Publisher(robot_display_topic, Image)
+        else:
+            self.robot_display_pub = None
         self.subscriber1 = rospy.Subscriber(img_topic, Image, self.imgCallback)
         self.subscriber2 = rospy.Subscriber(depth_topic, PointCloud2, self.depthCallback)
-        self.pub = rospy.Publisher(pub_topic, PointStamped)
 
     def clickCallback(self, event, x, y, flag, param):
         if (event == cv.EVENT_LBUTTONUP):
@@ -118,19 +122,20 @@ class KinectImage:
                 cv.circle(frame, center, 5, (0, 0, 255), -1)
                 p = PointStamped()
                 p.point.y, p.point.z, p.point.x = getDepth(x, y, self.lastPC)
-                p.point.y, p.point.z = p.point.y, -p.point.z
+                p.point.y, p.point.z = -p.point.y, -p.point.z
                 # p.point.x, p.point.y, p.point.z = x * 0.001, y * 0.001, getDepth(x, y, self.lastPC)[2]
                 p.header.frame_id = self.ball_frame
                 
                 self.pub.publish(p)
-
+        if self.robot_display_pub:
+            self.robot_display_pub.publish(self.bridge.cv2_to_imgmsg(frame, encoding="bgr8"))
         cv.imshow("Frame", frame)
         key = cv.waitKey(1) & 0xFF
 
     def depthCallback(self, pc):
         self.lastPC = pc
         
-def getDepth(x, y, lPC, numSamples=500, mu=0, sigma=3):
+def getDepth(x, y, lPC, numSamples=500, mu=0, sigma=10):
     # x -= 10
     # ptsX, ptsY, ptsD = np.array([]), np.array([]), np.array([])
     # for _ in range(numSamples):
@@ -151,10 +156,13 @@ def getDepth(x, y, lPC, numSamples=500, mu=0, sigma=3):
     # return np.median(ptsX), np.median(ptsY), np.median(ptsD)
     pts = []
     for _ in range(numSamples):
-        dx, dy = np.random.normal(mu, sigma, 2)
-        pt = read_point(int(np.round(x + dx)), int(np.round(y + dy)), lPC)
-        if not np.isnan(pt[0]) and not np.isnan(pt[1]) and not np.isnan(pt[2]):
-            pts.append(pt)
+        try:
+            dx, dy = np.random.normal(mu, sigma, 2)
+            pt = read_point(int(np.round(x + dx)), int(np.round(y + dy)), lPC)
+            if not np.isnan(pt[0]) and not np.isnan(pt[1]) and not np.isnan(pt[2]):
+                pts.append(pt)
+        except:
+            continue
     return min(pts, key=lambda x: x[2])
 
 def read_point(x, y, cloud, field_names=None, skip_nans=False, uvs=[]):

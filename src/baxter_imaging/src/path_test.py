@@ -31,7 +31,9 @@ class Actuator(object):
         # self.orien_const = OrientationConstraint()
         # self.orien_const.link_name = "right_gripper"
         # self.orien_const.header.frame_id = "base"
-        # self.orien_const.orientation.z = -1
+        # self.orien_const.orientation.z = 0
+        # self.orien_const.orientation.y = 1
+        # self.orien_const.orientation.w = 0
         # self.orien_const.absolute_x_axis_tolerance = 0.1
         # self.orien_const.absolute_y_axis_tolerance = 0.1
         # self.orien_const.absolute_z_axis_tolerance = 0.1
@@ -42,7 +44,7 @@ class Actuator(object):
         obstacle_pose = PoseStamped()
         obstacle_pose.header.frame_id = "base"
 
-        obstacle_pose.pose.position.x = -0.7
+        obstacle_pose.pose.position.x = -1
         obstacle_pose.pose.position.y = 0
         obstacle_pose.pose.position.z = 0
 
@@ -52,6 +54,21 @@ class Actuator(object):
         obstacle_pose.pose.orientation.w = 1
 
         self.planner.add_box_obstacle(size, "wall", obstacle_pose)
+
+        size = [.75, 1, 1]
+        obstacle_pose = PoseStamped()
+        obstacle_pose.header.frame_id = "base"
+
+        obstacle_pose.pose.position.x = 1
+        obstacle_pose.pose.position.y = 0
+        obstacle_pose.pose.position.z = -.4
+
+        obstacle_pose.pose.orientation.x = 0
+        obstacle_pose.pose.orientation.y = 0
+        obstacle_pose.pose.orientation.z = 0
+        obstacle_pose.pose.orientation.w = 1
+
+        self.planner.add_box_obstacle(size, "table", obstacle_pose)
 
         self.pub = rospy.Publisher(pub_topic, Bool)
         self.sub = rospy.Subscriber(sub_topic, PoseStamped, self.callback)
